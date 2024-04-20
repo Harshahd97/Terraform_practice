@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Define the directory where you want to store the backup
+BACKUP_DIR="/path/to/backup"
+
+# Create the backup directory if it doesn't exist
+mkdir -p "$BACKUP_DIR"
+
+# Copy the Jenkins home directory to the backup directory
+cp -r "$JENKINS_HOME" "$BACKUP_DIR"
+
+# Compress the backup directory into a tar.gz file
+tar -czf "$BACKUP_DIR/backup.tar.gz" "$BACKUP_DIR"
+
+# Define S3 bucket name and AWS region
+S3_BUCKET="hello-backup-jenkins"
+AWS_REGION="ap-south-1"
+
+# Copy the backup to S3
+aws s3 cp "$BACKUP_DIR/backup.tar.gz" "s3://$S3_BUCKET/" --region "$AWS_REGION"
+
+echo "Jenkins backup completed and copied to S3"
