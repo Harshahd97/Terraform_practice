@@ -1,0 +1,72 @@
+write terraform configuration to create eks
+prerequisites:
+  AWS CLI
+  IAM Permissions
+  Networking Configuration -vpc, subnets,security group
+
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_eks_cluster" "my_cluster" {
+  name     = "name"
+  role_arn = role
+
+  vpc_config {
+    subnet_ids = []
+    security_group_ids = []
+  }
+}
+
+resource "aws_iam_role" "eks_cluster_role" {
+  name               = "role-name"
+  assume_role_policy = data.aws_iam_policy_document.assume_role_policy.json
+}
+
+data "aws_iam_policy_document" "assume_role_policy" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["eks.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_eks_node_group" "my_node_group" {
+  cluster_name    = aws_eks_cluster.my_cluster.name
+  node_group_name = "my-node-group"
+  node_role_arn   = aws_iam_role.eks_node_role.arn
+
+  scaling_config {
+    desired_size = 2
+    max_size     = 3
+    min_size     = 1
+  }
+
+  subnet_ids = ["subnet-12345678", "subnet-23456789"] # Replace with the IDs of your VPC subnets
+}
+
+resource "aws_iam_role" "eks_node_role" {
+  name               = "eks-node-role"
+  assume_role_policy = data.aws_iam_policy_document.assume_role_policy.json
+}
+
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "3.2.0"
+
+  name                 = "my-vpc"
+  cidr                 = "10.0.0.0/16"
+  azs                  = ["us-west-2a", "us-west-2b"]
+  private_subnets      = ["10.0.1.0/24", "10.0.2.0/24"]
+  public_subnets       = ["10.0.101.0/24", "10.0.102.0/24"]
+  enable_nat_gateway   = true
+  single_nat_gateway   = true
+  enable_dns_hostnames = true
+}
+
+output "cluster_name" {
+  value = aws_eks_cluster.my_cluster.name
+}
